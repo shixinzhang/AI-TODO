@@ -1,6 +1,6 @@
 # 项目介绍
 
-本项目是[《转型 AI 工程师：重塑你的能力栈与思维》](https://xiaobot.net/creator/ai_1024) 第二篇《》的实战项目。
+本项目是[《转型 AI 工程师：重塑你的能力栈与思维》](https://xiaobot.net/creator/ai_1024) 第二篇[《别再设限：全栈比想象中容易得多》](https://xiaobot.net/post/43f0fc78-b262-49c0-9def-4f3dd804d670)的实战项目。
 
 这是一个基于 Next.js 的全栈待办事项应用，使用 TypeScript 开发，前端采用 React + Tailwind CSS，后端使用 Next.js API Routes，数据库使用 Supabase，AI 功能集成 DeepSeek API。
 
