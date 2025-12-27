@@ -92,12 +92,9 @@ export default async function handler(
         },
       ],
       temperature: 0.7,  // 控制输出的随机性
-      max_tokens: 500,   // 最大 token 数
+      max_tokens: 65535,   // 最大 token 数
       top_p: 0.9,  // 控制输出的随机性
       seed: 42,  // 控制输出的随机性
-      stream: false,  // 控制输出的随机性
-      frequency_penalty: 0.0,  // 控制输出的随机性
-      presence_penalty: 0.0,  // 控制输出的随机性,
     })
 
     // 获取 AI 返回的内容
