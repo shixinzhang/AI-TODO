@@ -9,7 +9,8 @@ export const APP_ID =
 // DeepSeek API 配置
 // DeepSeek API 地址：https://api.deepseek.com
 export const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
-export const DEEPSEEK_API_BASE_URL = 'https://sg.uiuiapi.com/v1';
+// export const DEEPSEEK_API_BASE_URL = 'https://sg.uiuiapi.com/v1';
+export const DEEPSEEK_API_BASE_URL = 'https://api.siliconflow.cn/v1';
 
 
 

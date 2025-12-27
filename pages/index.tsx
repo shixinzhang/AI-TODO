@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import TodoList from '@/components/TodoList'
 import PromptOptimizer from '@/components/PromptOptimizer'
+import StreamChat from '@/components/StreamChat'
 
-type TabType = 'todo' | 'prompt'
+type TabType = 'todo' | 'prompt' | 'chat'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('todo')
@@ -26,10 +27,18 @@ export default function Home() {
             >
               提示词生成
             </button>
+            <button
+              onClick={() => setActiveTab('chat')}
+              className={`notebook-tab ${activeTab === 'chat' ? 'active' : ''}`}
+            >
+              AI 聊天
+            </button>
           </div>
 
           {/* Tab 内容 */}
-          {activeTab === 'todo' ? <TodoList /> : <PromptOptimizer />}
+          {activeTab === 'todo' && <TodoList />}
+          {activeTab === 'prompt' && <PromptOptimizer />}
+          {activeTab === 'chat' && <StreamChat />}
         </div>
       </div>
     </div>
