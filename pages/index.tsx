@@ -2,8 +2,9 @@ import { useState } from 'react'
 import TodoList from '@/components/TodoList'
 import PromptOptimizer from '@/components/PromptOptimizer'
 import StreamAIChat from '@/components/StreamAIChat'
+import MultimodalChat from '@/components/MultimodalChat'
 
-type TabType = 'todo' | 'prompt' | 'stream-ai'
+type TabType = 'todo' | 'prompt' | 'stream-ai' | 'multimodal-chat'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('todo')
@@ -33,12 +34,19 @@ export default function Home() {
             >
               流式AI
             </button>
+            <button
+              onClick={() => setActiveTab('multimodal-chat')}
+              className={`notebook-tab ${activeTab === 'multimodal-chat' ? 'active' : ''}`}
+            >
+              多模态聊天
+            </button>
           </div>
 
           {/* Tab 内容 */}
           {activeTab === 'todo' && <TodoList />}
           {activeTab === 'prompt' && <PromptOptimizer />}
           {activeTab === 'stream-ai' && <StreamAIChat />}
+          {activeTab === 'multimodal-chat' && <MultimodalChat />}
         </div>
       </div>
     </div>

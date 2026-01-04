@@ -3,6 +3,8 @@ node_modules/
 /.pnp
 .pnp.js
 
+local
+
 # Testing
 /coverage
 
@@ -44,6 +46,7 @@ next-env.d.ts
 *.png
 *.jpg
 *.jpeg
+
 
 
 
