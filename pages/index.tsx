@@ -3,8 +3,9 @@ import TodoList from '@/components/TodoList'
 import PromptOptimizer from '@/components/PromptOptimizer'
 import StreamAIChat from '@/components/StreamAIChat'
 import MultimodalChat from '@/components/MultimodalChat'
+import AISDKDemo from '@/components/AISDKDemo'
 
-type TabType = 'todo' | 'prompt' | 'stream-ai' | 'multimodal-chat'
+type TabType = 'todo' | 'prompt' | 'stream-ai' | 'multimodal-chat' | 'ai-sdk'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('todo')
@@ -40,6 +41,12 @@ export default function Home() {
             >
               多模态聊天
             </button>
+            <button
+              onClick={() => setActiveTab('ai-sdk')}
+              className={`notebook-tab ${activeTab === 'ai-sdk' ? 'active' : ''}`}
+            >
+              AI SDK
+            </button>
           </div>
 
           {/* Tab 内容 */}
@@ -47,6 +54,7 @@ export default function Home() {
           {activeTab === 'prompt' && <PromptOptimizer />}
           {activeTab === 'stream-ai' && <StreamAIChat />}
           {activeTab === 'multimodal-chat' && <MultimodalChat />}
+          {activeTab === 'ai-sdk' && <AISDKDemo />}
         </div>
       </div>
     </div>
