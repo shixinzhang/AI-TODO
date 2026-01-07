@@ -1,4 +1,4 @@
-import { streamText, tool, UIMessage } from 'ai';
+import { streamText, generateText, tool, UIMessage } from 'ai';
 import { z } from 'zod';
 import { deepseek, nanobanana, veo3 } from '@/lib/ai/models';
 import { VIDEO_GENERATION_METHOD, DOUBAO_API_BASE_URL, DOUBAO_API_TOKEN, DOUBAO_VIDEO_MODEL } from '@/lib/config';
@@ -45,149 +45,58 @@ const generateImage = tool({
     }
 
     try {
-      // 调用图片生成模型
-      // 注意：根据实际 API，可能需要使用 generateObject 或直接调用 OpenAI client
-      // 当前实现使用 streamText，如果 API 返回格式不同，需要调整
-      const result = await streamText({
+      // 使用 generateText 获取完整响应（比 streamText 更简洁）
+      const result = await generateText({
         model: nanobanana,
         prompt: `生成手绘风格的知识图片：${prompt.trim()}`,
-        system: '生成手绘风格的知识图片',
       });
 
-      // 读取生成的文本响应（可能包含图片 URL）
-      // 注意：base64 图片可能很大（几万到几十万字符），需要足够大的缓冲区
-      let fullText = '';
-      let hasBase64Start = false; // 是否检测到 base64 开始标记
-      try {
-        for await (const chunk of result.textStream) {
-          fullText += chunk;
-          
-          // 检测是否包含 base64 data URL 的开始标记
-          if (!hasBase64Start && fullText.includes('data:image/')) {
-            hasBase64Start = true;
-          }
-          
-          // 如果检测到 base64 开始，继续读取直到找到完整的 base64 字符串
-          // base64 字符串通常以 = 结尾（填充），或者长度是 4 的倍数
-          if (hasBase64Start) {
-            // 尝试匹配完整的 base64 字符串
-            const base64Match = fullText.match(/data:image\/[^;]+;base64,([A-Za-z0-9+\/=]+)/);
-            if (base64Match) {
-              const base64Data = base64Match[1];
-              // 如果 base64 字符串看起来完整（以 = 结尾或长度是 4 的倍数），可以停止读取
-              // 但为了安全，我们继续读取一些额外的字符，确保没有遗漏
-              if (base64Data.endsWith('==') || base64Data.endsWith('=') || base64Data.length % 4 === 0) {
-                // 再读取一些额外的字符，确保没有遗漏
-                // 如果连续 1000 个字符都没有新的 base64 字符，可能已经完整了
-                // 这里我们设置一个合理的上限：500KB（约 50 万字符）
-                if (fullText.length > 500000) {
-                  break;
-                }
-              }
-            } else {
-              // 如果还没找到完整的 base64 字符串，继续读取
-              // 设置一个合理的上限：500KB
-              if (fullText.length > 500000) {
-                break;
-              }
-            }
-          } else {
-            // 如果还没检测到 base64 开始，使用较小的限制（10KB）来避免读取过多无用数据
-            if (fullText.length > 10000) {
-              break;
-            }
-          }
+      let imageUrl: string | null = null;
+
+      // 方法1：优先从 result.files 中获取图片（AI SDK 标准方式）
+      if (result.files?.length) {
+        const imageFile = result.files.find(f => f.mediaType.startsWith('image/'));
+        if (imageFile) {
+          imageUrl = `data:${imageFile.mediaType};base64,${imageFile.base64}`;
         }
-      } catch (streamError: any) {
-        console.error('读取流式响应失败:', streamError);
-        return {
-          success: false,
-          error: '读取图片生成响应失败',
-        };
       }
 
-      // 尝试从响应中提取图片 URL
-      // 支持多种格式：Base64 data URL、HTTP URL
-      let imageUrl: string | null = null;
-      
-      // 方法1：尝试从 JSON 中提取（如果响应是 JSON 格式，这是最可靠的方法）
-      try {
-        // 尝试解析整个响应为 JSON
-        const jsonData = JSON.parse(fullText.trim());
-        if (jsonData.imageUrl && typeof jsonData.imageUrl === 'string') {
-          imageUrl = jsonData.imageUrl;
-        }
-      } catch (e) {
-        // 如果不是完整 JSON，尝试提取 JSON 片段
-        try {
-          // 匹配包含 imageUrl 的 JSON 对象
-          const jsonMatch = fullText.match(/\{[^}]*"imageUrl"\s*:\s*"([^"]+)"[^}]*\}/);
-          if (jsonMatch) {
-            // 尝试解析匹配的 JSON 片段
-            const jsonStr = jsonMatch[0];
-            const parsed = JSON.parse(jsonStr);
-            if (parsed.imageUrl && typeof parsed.imageUrl === 'string') {
-              imageUrl = parsed.imageUrl;
-            }
-          }
-        } catch (e2) {
-          // JSON 解析失败，继续尝试正则表达式
-        }
-      }
-      
-      // 方法2：使用正则表达式匹配 base64 data URL
-      // base64 字符集：A-Z, a-z, 0-9, +, /, =（用于填充）
-      // 注意：base64 字符串可能很长，需要匹配尽可能多的字符
-      if (!imageUrl) {
-        // 匹配 data:image/[type];base64,[base64字符串]
-        // 使用非贪婪匹配，但确保匹配到完整的 base64 字符串
-        // base64 字符串通常以 = 结尾（填充），或者以其他字符结尾
-        // 我们需要匹配到字符串结束、引号、或空白字符（但 base64 本身不应该有空白）
-        const base64Pattern = /data:image\/[^;]+;base64,([A-Za-z0-9+\/=]+)/;
-        const base64Match = fullText.match(base64Pattern);
+      // 方法2：如果 files 为空，从 text 中提取（兼容不支持 files 的代理）
+      if (!imageUrl && result.text) {
+        const fullText = result.text;
+
+        // 尝试匹配 base64 data URL
+        const base64Match = fullText.match(/data:image\/[^;]+;base64,[A-Za-z0-9+\/=]+/);
         if (base64Match) {
           imageUrl = base64Match[0];
-          // 如果 base64 字符串被截断（不以 = 结尾且长度不是 4 的倍数），尝试扩展匹配
-          const base64Data = base64Match[1];
-          // base64 字符串长度应该是 4 的倍数（可能有填充 =）
-          // 如果当前匹配的字符串看起来不完整，尝试匹配更多字符
-          if (base64Data.length > 0 && base64Data.length % 4 !== 0) {
-            // 尝试匹配更长的 base64 字符串
-            const extendedPattern = new RegExp(`data:image\\/[^;]+;base64,([A-Za-z0-9+\\/=]+)`);
-            const extendedMatch = fullText.match(extendedPattern);
-            if (extendedMatch && extendedMatch[1].length > base64Data.length) {
-              imageUrl = extendedMatch[0];
-            }
+        }
+
+        // 尝试匹配 HTTP URL
+        if (!imageUrl) {
+          const httpMatch = fullText.match(/https?:\/\/[^\s"'<>]+\.(jpg|jpeg|png|gif|webp)/i);
+          if (httpMatch) {
+            imageUrl = httpMatch[0];
           }
         }
       }
 
-      // 方法3：如果没找到 Base64，尝试 HTTP URL
-      if (!imageUrl) {
-        const httpUrlMatch = fullText.match(/https?:\/\/[^\s"']+\.(jpg|jpeg|png|gif|webp)/i);
-        imageUrl = httpUrlMatch ? httpUrlMatch[0] : null;
-      }
-      
       // 调试日志（开发环境）
       if (process.env.NODE_ENV === 'development') {
-        console.log('图片提取调试信息:', {
-          fullTextLength: fullText.length,
-          fullTextPreview: fullText.substring(0, 500),
+        console.log('图片生成调试信息:', {
+          hasFiles: !!result.files?.length,
+          filesCount: result.files?.length || 0,
+          textLength: result.text?.length || 0,
           imageUrlFound: !!imageUrl,
-          imageUrlLength: imageUrl?.length || 0,
-          imageUrlPreview: imageUrl ? `${imageUrl.substring(0, 100)}...${imageUrl.substring(imageUrl.length - 20)}` : null,
-          imageUrlStartsWith: imageUrl ? imageUrl.substring(0, 30) : null,
-          imageUrlEndsWith: imageUrl ? imageUrl.substring(imageUrl.length - 30) : null,
+          imageUrlPreview: imageUrl ? `${imageUrl.substring(0, 50)}...` : null,
         });
       }
 
       if (!imageUrl) {
-        // 如果无法提取图片 URL，返回错误（生产环境不返回 debug 信息）
         const isDevelopment = process.env.NODE_ENV === 'development';
         return {
           success: false,
           error: '图片生成失败，未返回图片数据',
-          ...(isDevelopment && { debug: fullText.substring(0, 200) }), // 仅开发环境返回调试信息
+          ...(isDevelopment && { debug: result.text?.substring(0, 200) }),
         };
       }
 
@@ -198,8 +107,7 @@ const generateImage = tool({
       };
     } catch (error: any) {
       console.error('图片生成失败:', error);
-      
-      // 根据错误类型返回不同的错误信息
+
       let errorMessage = '图片生成失败';
       if (error.message) {
         if (error.message.includes('timeout') || error.message.includes('TIMEOUT')) {
@@ -209,7 +117,6 @@ const generateImage = tool({
         } else if (error.message.includes('401') || error.message.includes('unauthorized')) {
           errorMessage = 'API 认证失败，请检查配置';
         } else {
-          // 生产环境不暴露详细错误信息
           const isDevelopment = process.env.NODE_ENV === 'development';
           errorMessage = isDevelopment ? error.message : '图片生成失败，请稍后重试';
         }
@@ -226,109 +133,58 @@ const generateImage = tool({
 // 视频生成函数：使用 Veo3 模型（旧方式）
 async function generateVideoWithVeo3(prompt: string): Promise<{ success: boolean; videoUrl?: string; error?: string; prompt?: string }> {
   try {
-    // 调用视频生成模型
-    const result = await streamText({
+    // 使用 generateText 获取完整响应
+    const result = await generateText({
       model: veo3,
       prompt: prompt.trim(),
     });
 
-    // 读取生成的文本响应（可能包含视频 URL）
-    // 注意：base64 视频可能很大（几十万到几百万字符），需要足够大的缓冲区
-    let fullText = '';
-    let hasBase64Start = false; // 是否检测到 base64 开始标记
-    try {
-      for await (const chunk of result.textStream) {
-        fullText += chunk;
-        
-        // 检测是否包含 base64 data URL 的开始标记
-        if (!hasBase64Start && fullText.includes('data:video/')) {
-          hasBase64Start = true;
-        }
-        
-        // 如果检测到 base64 开始，继续读取直到找到完整的 base64 字符串
-        if (hasBase64Start) {
-          // 尝试匹配完整的 base64 字符串
-          const base64Match = fullText.match(/data:video\/[^;]+;base64,([A-Za-z0-9+\/=]+)/);
-          if (base64Match) {
-            const base64Data = base64Match[1];
-            // 如果 base64 字符串看起来完整（以 = 结尾或长度是 4 的倍数），可以停止读取
-            if (base64Data.endsWith('==') || base64Data.endsWith('=') || base64Data.length % 4 === 0) {
-              // 再读取一些额外的字符，确保没有遗漏
-              // 设置一个合理的上限：2MB（约 200 万字符，视频可能更大）
-              if (fullText.length > 2000000) {
-                break;
-              }
-            }
-          } else {
-            // 如果还没找到完整的 base64 字符串，继续读取
-            // 设置一个合理的上限：2MB
-            if (fullText.length > 2000000) {
-              break;
-            }
-          }
-        } else {
-          // 如果还没检测到 base64 开始，使用较小的限制（10KB）来避免读取过多无用数据
-          if (fullText.length > 10000) {
-            break;
-          }
-        }
+    let videoUrl: string | null = null;
+
+    // 方法1：优先从 result.files 中获取视频（AI SDK 标准方式）
+    if (result.files?.length) {
+      const videoFile = result.files.find(f => f.mediaType.startsWith('video/'));
+      if (videoFile) {
+        videoUrl = `data:${videoFile.mediaType};base64,${videoFile.base64}`;
       }
-    } catch (streamError: any) {
-      console.error('读取流式响应失败:', streamError);
-      return {
-        success: false,
-        error: '读取视频生成响应失败',
-      };
     }
 
-    // 尝试从响应中提取视频 URL
-    // 支持多种格式：Base64 data URL、HTTP URL
-    let videoUrl: string | null = null;
-    
-    // 方法1：尝试从 JSON 中提取（如果响应是 JSON 格式）
-    try {
-      const jsonData = JSON.parse(fullText.trim());
-      if (jsonData.videoUrl && typeof jsonData.videoUrl === 'string') {
-        videoUrl = jsonData.videoUrl;
-      }
-    } catch (e) {
-      // 如果不是完整 JSON，尝试提取 JSON 片段
-      try {
-        const jsonMatch = fullText.match(/\{[^}]*"videoUrl"\s*:\s*"([^"]+)"[^}]*\}/);
-        if (jsonMatch) {
-          const jsonStr = jsonMatch[0];
-          const parsed = JSON.parse(jsonStr);
-          if (parsed.videoUrl && typeof parsed.videoUrl === 'string') {
-            videoUrl = parsed.videoUrl;
-          }
-        }
-      } catch (e2) {
-        // JSON 解析失败，继续尝试正则表达式
-      }
-    }
-    
-    // 方法2：使用正则表达式匹配 base64 data URL
-    if (!videoUrl) {
-      const base64Pattern = /data:video\/[^;]+;base64,([A-Za-z0-9+\/=]+)/;
-      const base64Match = fullText.match(base64Pattern);
+    // 方法2：如果 files 为空，从 text 中提取（兼容不支持 files 的代理）
+    if (!videoUrl && result.text) {
+      const fullText = result.text;
+
+      // 尝试匹配 base64 data URL
+      const base64Match = fullText.match(/data:video\/[^;]+;base64,[A-Za-z0-9+\/=]+/);
       if (base64Match) {
         videoUrl = base64Match[0];
       }
+
+      // 尝试匹配 HTTP URL
+      if (!videoUrl) {
+        const httpMatch = fullText.match(/https?:\/\/[^\s"'<>]+\.(mp4|webm|mov|avi)/i);
+        if (httpMatch) {
+          videoUrl = httpMatch[0];
+        }
+      }
     }
 
-    // 如果没找到 Base64，尝试 HTTP URL
-    if (!videoUrl) {
-      const httpUrlMatch = fullText.match(/https?:\/\/[^\s"']+\.(mp4|webm|mov|avi)/i);
-      videoUrl = httpUrlMatch ? httpUrlMatch[0] : null;
+    // 调试日志（开发环境）
+    if (process.env.NODE_ENV === 'development') {
+      console.log('视频生成调试信息:', {
+        hasFiles: !!result.files?.length,
+        filesCount: result.files?.length || 0,
+        textLength: result.text?.length || 0,
+        videoUrlFound: !!videoUrl,
+        videoUrlPreview: videoUrl ? `${videoUrl.substring(0, 50)}...` : null,
+      });
     }
 
     if (!videoUrl) {
-      // 如果无法提取视频 URL，返回错误（生产环境不返回 debug 信息）
       const isDevelopment = process.env.NODE_ENV === 'development';
       return {
         success: false,
         error: '视频生成失败，未返回视频数据',
-        ...(isDevelopment && { debug: fullText.substring(0, 200) }), // 仅开发环境返回调试信息
+        ...(isDevelopment && { debug: result.text?.substring(0, 200) }),
       };
     }
 
@@ -339,8 +195,7 @@ async function generateVideoWithVeo3(prompt: string): Promise<{ success: boolean
     };
   } catch (error: any) {
     console.error('视频生成失败:', error);
-    
-    // 根据错误类型返回不同的错误信息
+
     let errorMessage = '视频生成失败';
     if (error.message) {
       if (error.message.includes('timeout') || error.message.includes('TIMEOUT')) {
@@ -350,7 +205,6 @@ async function generateVideoWithVeo3(prompt: string): Promise<{ success: boolean
       } else if (error.message.includes('401') || error.message.includes('unauthorized')) {
         errorMessage = 'API 认证失败，请检查配置';
       } else {
-        // 生产环境不暴露详细错误信息
         const isDevelopment = process.env.NODE_ENV === 'development';
         errorMessage = isDevelopment ? error.message : '视频生成失败，请稍后重试';
       }

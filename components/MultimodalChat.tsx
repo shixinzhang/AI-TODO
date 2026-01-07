@@ -561,9 +561,9 @@ export default function MultimodalChat() {
   return (
     <div className="flex flex-col w-full max-w-4xl mx-auto h-[600px] border-2 border-dashed border-gray-300 rounded-lg bg-white shadow-sm">
       {/* 标题 */}
-      <h2 className="handwriting-title text-2xl mb-4 text-center text-gray-800 p-4 border-b">
+      {/* <h2 className="handwriting-title text-2xl mb-4 text-center text-gray-800 p-4 border-b">
         多模态聊天
-      </h2>
+      </h2> */}
 
       {/* 消息列表 */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
