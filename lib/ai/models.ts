@@ -20,3 +20,15 @@ export const gemini = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_API_KEY,
 })('gemini-1.5-pro');
 
+// 图片生成模型（Gemini 3 Pro Image Preview）
+export const nanobanana = createOpenAI({
+  apiKey: process.env.DEEPSEEK_API_KEY,
+  baseURL: 'https://sg.uiuiapi.com/v1',
+}).chat('gemini-3-pro-image-preview');
+
+// 视频生成模型（Veo3）
+export const veo3 = createOpenAI({
+  apiKey: process.env.DEEPSEEK_API_KEY,
+  baseURL: 'https://sg.uiuiapi.com/v1',
+}).chat('veo3');
+

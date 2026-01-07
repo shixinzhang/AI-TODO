@@ -8,7 +8,7 @@ import AISDKDemo from '@/components/AISDKDemo'
 type TabType = 'todo' | 'prompt' | 'stream-ai' | 'multimodal-chat' | 'ai-sdk'
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<TabType>('todo')
+  const [activeTab, setActiveTab] = useState<TabType>('multimodal-chat')
 
   return (
     <div className="min-h-screen paper-texture p-8">
@@ -17,6 +17,12 @@ export default function Home() {
         <div className="notebook-page">
           {/* Tab 切换 */}
           <div className="mb-8 flex gap-4 justify-center">
+            <button
+              onClick={() => setActiveTab('multimodal-chat')}
+              className={`notebook-tab ${activeTab === 'multimodal-chat' ? 'active' : ''}`}
+            >
+              多模态聊天
+            </button>
             <button
               onClick={() => setActiveTab('todo')}
               className={`notebook-tab ${activeTab === 'todo' ? 'active' : ''}`}
@@ -34,12 +40,6 @@ export default function Home() {
               className={`notebook-tab ${activeTab === 'stream-ai' ? 'active' : ''}`}
             >
               流式AI
-            </button>
-            <button
-              onClick={() => setActiveTab('multimodal-chat')}
-              className={`notebook-tab ${activeTab === 'multimodal-chat' ? 'active' : ''}`}
-            >
-              多模态聊天
             </button>
             <button
               onClick={() => setActiveTab('ai-sdk')}
