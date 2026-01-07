@@ -1,4 +1,3 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
 import { streamText } from 'ai';
 import { deepseek } from '@/lib/ai/models';
 
@@ -19,21 +18,33 @@ import { deepseek } from '@/lib/ai/models';
  * 
  * 使用方式：
  * 前端使用 useCompletion Hook，指定 api: '/api/ai-sdk/completion'
+ * SDK 会自动处理所有请求和响应
+ * 
+ * 注意：使用 Edge Runtime 以支持直接返回 Response 对象
  */
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export const config = {
+  runtime: 'edge',
+};
+
+export default async function handler(req: Request) {
   if (req.method !== 'POST') {
-    res.setHeader('Allow', ['POST']);
-    return res.status(405).json({ error: `Method ${req.method} not allowed` });
+    return new Response(
+      JSON.stringify({ error: `Method ${req.method} not allowed` }),
+      { 
+        status: 405,
+        headers: { 'Allow': 'POST', 'Content-Type': 'application/json' }
+      }
+    );
   }
 
   try {
-    const { prompt } = req.body;
+    const { prompt }: { prompt: string } = await req.json();
 
     if (!prompt || typeof prompt !== 'string') {
-      return res.status(400).json({ error: 'prompt is required and must be a string' });
+      return new Response(
+        JSON.stringify({ error: 'prompt is required and must be a string' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
     // 使用 streamText 生成流式响应
@@ -44,44 +55,18 @@ export default async function handler(
       system: '你是一个专业的文本生成助手，能够根据提示词生成高质量的内容。',
     });
 
-    // 转换为 useCompletion 需要的格式
-    const response = result.toDataStreamResponse();
-    
-    // 设置响应头
-    const contentType = response.headers.get('Content-Type') || 'text/plain; charset=utf-8';
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
-
-    // 流式传输响应体
-    const reader = response.body?.getReader();
-    if (!reader) {
-      return res.status(500).json({ error: 'Failed to create reader' });
-    }
-
-    // 将流式数据传递给客户端
-    const pump = async () => {
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          res.write(value);
-        }
-        res.end();
-      } catch (error) {
-        console.error('Stream error:', error);
-        res.end();
-      }
-    };
-
-    pump();
+    // 将结果转换为 useCompletion 需要的格式
+    // toTextStreamResponse() 会自动处理所有格式转换
+    return result.toTextStreamResponse();
 
   } catch (error: any) {
     console.error('Completion API error:', error);
-    return res.status(500).json({ 
-      error: error.message || 'Internal server error' 
-    });
+    return new Response(
+      JSON.stringify({ 
+        error: error.message || 'Internal server error' 
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 }
 
