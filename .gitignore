@@ -3,8 +3,6 @@ node_modules/
 /.pnp
 .pnp.js
 
-local
-local/*
 docs
 
 # Testing
@@ -49,8 +47,12 @@ next-env.d.ts
 *.jpg
 *.jpeg
 
+# User profile data (local mock database)
+/data/
 
 
 
 
 
+local
+local/*

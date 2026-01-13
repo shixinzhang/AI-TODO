@@ -38,3 +38,9 @@ export const summaryModel = createOpenAI({
   apiKey: process.env.DEEPSEEK_API_KEY,
   baseURL: 'https://sg.uiuiapi.com/v1',
 }).chat('deepseek-chat');
+
+// 画像提取模型（用于结构化输出，使用性价比高的模型）
+export const profileModel = createOpenAI({
+  apiKey: process.env.DEEPSEEK_API_KEY,
+  baseURL: 'https://sg.uiuiapi.com/v1',
+}).chat('deepseek-chat');

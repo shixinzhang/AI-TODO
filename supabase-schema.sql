@@ -42,3 +42,45 @@ CREATE POLICY "Allow all operations" ON tasks
   WITH CHECK (true);
 
 
+-- ============================================================
+-- 用户画像表 (User Profiles) - 用于长期记忆与画像提取
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS user_profiles (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id TEXT NOT NULL UNIQUE,  -- 用户唯一标识
+  profile JSONB DEFAULT '{}'::jsonb NOT NULL,  -- 用户画像数据（JSON 格式）
+  -- profile 结构示例：
+  -- {
+  --   "profession": "程序员",
+  --   "technical_stack": ["Python", "React", "AI"],
+  --   "preferences": "喜欢简洁直接的回答",
+  --   "interests": ["科幻", "音乐"],
+  --   "communication_style": "详细解释",
+  --   "goals": "学习 AI 应用开发"
+  -- }
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);-- 创建索引以提高查询性能
+CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_updated_at ON user_profiles(updated_at DESC);
+
+-- 创建更新时间触发器
+CREATE TRIGGER update_user_profiles_updated_at
+  BEFORE UPDATE ON user_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- 启用 Row Level Security (RLS)
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+
+-- 允许所有操作（根据需求调整）
+CREATE POLICY "Allow all operations on user_profiles" ON user_profiles
+  FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+-- 添加注释说明
+COMMENT ON TABLE user_profiles IS '用户画像表，用于存储从对话中提取的用户长期记忆特征';
+COMMENT ON COLUMN user_profiles.user_id IS '用户唯一标识符';
+COMMENT ON COLUMN user_profiles.profile IS '用户画像 JSON 数据，包含职业、技术栈、偏好、兴趣等';

@@ -2,11 +2,51 @@ import { streamText, generateText, tool, UIMessage, ModelMessage } from 'ai';
 import { z } from 'zod';
 import { deepseek, nanobanana, veo3 } from '@/lib/ai/models';
 import { VIDEO_GENERATION_METHOD, DOUBAO_API_BASE_URL, DOUBAO_API_TOKEN, DOUBAO_VIDEO_MODEL } from '@/lib/config';
-import { compressHistory, buildSystemPromptWithSummary } from '@/lib/memory-manager';
+import {
+  compressHistory,
+  buildFullSystemPrompt,
+  getUserProfile,
+  createProfileExtractionCallback
+} from '@/lib/memory-manager';
+
+// 🔍 全局拦截 fetch 来记录发送给大模型 API 的实际请求
+const originalFetch = globalThis.fetch;
+globalThis.fetch = function(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+
+  // 只记录发送给大模型 API 的请求
+  if (url.includes('uiuiapi.com') || url.includes('siliconflow.cn') || url.includes('deepseek')) {
+    console.log('========================================');
+    console.log('🌐 [网络请求] 发送请求到大模型 API');
+    console.log('📍 URL:', url);
+    console.log('📦 Method:', init?.method || 'GET');
+
+    if (init?.body) {
+      try {
+        const body = typeof init.body === 'string' ? JSON.parse(init.body) : init.body;
+        console.log('📋 请求体:', JSON.stringify(body, null, 2));
+        console.log('🔍 关键字段检查:');
+        console.log('  - 有 system 字段:', 'system' in body);
+        console.log('  - system 内容长度:', body.system?.length || 0);
+        console.log('  - 包含画像标记:', body.system?.includes('【用户画像】') || false);
+        console.log('  - messages 数量:', body.messages?.length || 0);
+      } catch (e) {
+        console.log('📋 请求体（解析失败）:', init.body);
+      }
+    }
+    console.log('========================================');
+  }
+
+  return originalFetch.call(this, input, init);
+};
 
 export const config = {
   runtime: 'edge',
 };
+
+// 🔍 开启 AI SDK 详细日志
+process.env.AI_SDK_DEBUG = 'true';
+process.env.AI_SDK_LOG_MODEL_REQUESTS = 'true';
 
 // 图片生成工具
 const generateImage = tool({
@@ -548,7 +588,7 @@ export default async function handler(req: Request) {
   }
 
   try {
-    const { messages }: { messages: UIMessage[] } = await req.json();
+    const { messages, userId = 'default_user' }: { messages: UIMessage[]; userId?: string } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(
@@ -578,9 +618,26 @@ export default async function handler(req: Request) {
       })
       .filter(msg => msg.content.length > 0);
 
-    // 应用短期记忆管理：滑动窗口 + 摘要压缩
+    // Step 1: 获取用户长期记忆（画像）
+    const userProfile = await getUserProfile(userId);
+    console.log(`[长期记忆] 用户 ${userId} 画像: ${userProfile ? userProfile.substring(0, 50) + '...' : '无'}`);
+
+    // Step 2: 应用短期记忆管理：滑动窗口 + 摘要压缩
     const { messages: optimizedMessages, summary } = await compressHistory(modelMessages);
-    console.log(`[记忆管理] 原始消息数: ${modelMessages.length}, 优化后: ${optimizedMessages.length}, 有摘要: ${!!summary}`);
+    console.log(`[短期记忆] 原始消息数: ${modelMessages.length}, 优化后: ${optimizedMessages.length}, 有摘要: ${!!summary}`);
+
+    // 提取用户最后一条消息（用于画像提取）
+    const lastUserMessage = modelMessages
+      .filter(m => m.role === 'user')
+      .pop()?.content || '';
+    const lastUserMessageText = typeof lastUserMessage === 'string'
+      ? lastUserMessage
+      : JSON.stringify(lastUserMessage);
+
+    console.log('[画像提取] 准备创建回调函数');
+    console.log('[画像提取] 用户ID:', userId);
+    console.log('[画像提取] 最后一条用户消息长度:', lastUserMessageText.length);
+    console.log('[画像提取] 用户消息内容:', lastUserMessageText.substring(0, 100));
 
     // 基础 System Prompt
     const baseSystemPrompt = `你是一个多模态 AI 助手，可以帮助用户：
@@ -599,10 +656,34 @@ export default async function handler(req: Request) {
 - 如果用户说"我想看看图片"或"我想看看视频"，不要调用工具，而是询问用户想看什么内容
 - 从用户输入中提取 prompt 参数时，要准确理解用户的意图，不要遗漏关键信息`;
 
-    // 构建包含历史摘要的完整 System Prompt
-    const fullSystemPrompt = buildSystemPromptWithSummary(baseSystemPrompt, summary);
+    // Step 3: 构建完整 System Prompt（注入长期记忆画像 + 短期记忆摘要）
+    const fullSystemPrompt = buildFullSystemPrompt(baseSystemPrompt, summary, userProfile);
+    console.log('[API] 📋 完整 System Prompt 已构建，长度:', fullSystemPrompt.length);
+
+    // Step 4: 创建画像提取回调（旁路监听模式）
+    const onProfileExtraction = createProfileExtractionCallback(
+      userId,
+      lastUserMessageText,
+      userProfile
+    );
+
+    console.log('[画像提取] ✅ 回调函数已创建并注册到 onFinish');
 
     // 使用 streamText 生成流式响应，并注册工具
+    console.log('[API] 🚀 准备调用 streamText，参数:', {
+      model: 'deepseek',
+      messagesCount: optimizedMessages.length,
+      systemPromptLength: fullSystemPrompt.length,
+      hasUserProfile: !!userProfile,
+      hasSummary: !!summary,
+    });
+
+    // 🔍 调试：打印完整的 System Prompt（前500字符）
+    console.log('[API] 📋 完整 System Prompt 前500字符:');
+    console.log(fullSystemPrompt.substring(0, 500));
+    console.log('[API] 📋 System Prompt 包含画像标记:', fullSystemPrompt.includes('【用户画像】'));
+    console.log('[API] 📋 System Prompt 包含摘要标记:', fullSystemPrompt.includes('【历史对话摘要】'));
+
     const result = await streamText({
       model: deepseek,
       messages: optimizedMessages,
@@ -611,9 +692,18 @@ export default async function handler(req: Request) {
         generateImage,
         generateVideo,
       },
+      // 🔥 核心：旁路提取 (Async Sidecar)
+      // 对话结束后在服务器后台执行画像提取，不会让用户等待
+      onFinish: async (...args) => {
+        console.log('[画像提取] 🎯 onFinish 回调被触发，参数:', JSON.stringify(args).substring(0, 200));
+        await onProfileExtraction(...args);
+      },
     });
 
+    console.log('[API] ✅ streamText 调用成功，准备返回流式响应');
+
     // 转换为 useChat 需要的格式
+    console.log('[画像提取] 📤 准备返回响应流');
     return result.toUIMessageStreamResponse();
 
   } catch (error: any) {
