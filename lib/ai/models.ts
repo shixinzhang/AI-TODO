@@ -32,3 +32,9 @@ export const veo3 = createOpenAI({
   baseURL: 'https://sg.uiuiapi.com/v1',
 }).chat('veo3');
 
+
+// 摘要生成模型（使用较便宜的模型来节省成本）
+export const summaryModel = createOpenAI({
+  apiKey: process.env.DEEPSEEK_API_KEY,
+  baseURL: 'https://sg.uiuiapi.com/v1',
+}).chat('deepseek-chat');

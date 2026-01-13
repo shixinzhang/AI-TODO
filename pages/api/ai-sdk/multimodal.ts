@@ -1,7 +1,8 @@
-import { streamText, generateText, tool, UIMessage } from 'ai';
+import { streamText, generateText, tool, UIMessage, ModelMessage } from 'ai';
 import { z } from 'zod';
 import { deepseek, nanobanana, veo3 } from '@/lib/ai/models';
 import { VIDEO_GENERATION_METHOD, DOUBAO_API_BASE_URL, DOUBAO_API_TOKEN, DOUBAO_VIDEO_MODEL } from '@/lib/config';
+import { compressHistory, buildSystemPromptWithSummary } from '@/lib/memory-manager';
 
 export const config = {
   runtime: 'edge',
@@ -557,8 +558,8 @@ export default async function handler(req: Request) {
     }
 
     // 将 UI 消息格式转换为标准的 Model 消息格式
-    const modelMessages = messages
-      .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+    const modelMessages: ModelMessage[] = messages
+      .filter(msg => msg.role === 'user' || msg.role === 'assistant' || msg.role === 'system')
       .map(msg => {
         let content = '';
         if (msg.parts && Array.isArray(msg.parts)) {
@@ -571,18 +572,18 @@ export default async function handler(req: Request) {
         }
         
         return {
-          role: msg.role as 'user' | 'assistant',
+          role: msg.role as 'user' | 'assistant' | 'system',
           content: (content || '').trim()
         };
       })
-      .filter(msg => msg.content.length > 0)
-      .slice(-20); // 限制消息历史长度，避免 token 过多
+      .filter(msg => msg.content.length > 0);
 
-    // 使用 streamText 生成流式响应，并注册工具
-    const result = await streamText({
-      model: deepseek,
-      messages: modelMessages,
-      system: `你是一个多模态 AI 助手，可以帮助用户：
+    // 应用短期记忆管理：滑动窗口 + 摘要压缩
+    const { messages: optimizedMessages, summary } = await compressHistory(modelMessages);
+    console.log(`[记忆管理] 原始消息数: ${modelMessages.length}, 优化后: ${optimizedMessages.length}, 有摘要: ${!!summary}`);
+
+    // 基础 System Prompt
+    const baseSystemPrompt = `你是一个多模态 AI 助手，可以帮助用户：
 1. 进行文本对话
 2. 生成手绘风格的知识图片
 3. 生成视频
@@ -596,7 +597,16 @@ export default async function handler(req: Request) {
 - 只有当用户明确表达生成图片或视频的意图时，才调用工具
 - 如果用户只是询问"什么是图片生成"或"什么是视频生成"，不要调用工具，而是用文本解释
 - 如果用户说"我想看看图片"或"我想看看视频"，不要调用工具，而是询问用户想看什么内容
-- 从用户输入中提取 prompt 参数时，要准确理解用户的意图，不要遗漏关键信息`,
+- 从用户输入中提取 prompt 参数时，要准确理解用户的意图，不要遗漏关键信息`;
+
+    // 构建包含历史摘要的完整 System Prompt
+    const fullSystemPrompt = buildSystemPromptWithSummary(baseSystemPrompt, summary);
+
+    // 使用 streamText 生成流式响应，并注册工具
+    const result = await streamText({
+      model: deepseek,
+      messages: optimizedMessages,
+      system: fullSystemPrompt,
       tools: {
         generateImage,
         generateVideo,
