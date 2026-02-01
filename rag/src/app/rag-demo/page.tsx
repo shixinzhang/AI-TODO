@@ -135,7 +135,7 @@ export default function RagDemoPage() {
         
         <div className="mb-8">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-                OpenAI API Key (Optional if env var set)
+                API Key (Optional if env var set)
             </label>
             <input 
                 type="password"

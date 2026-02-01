@@ -32,4 +32,5 @@ yarn-error.log*
 # RAG / 本地数据（按需取消注释）
 # chroma_db/
 # milvus_data/
+milvus_data/logs/
 # models/
