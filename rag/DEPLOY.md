@@ -1,0 +1,107 @@
+# RAG 项目 Linux 部署说明（Standalone）
+
+## 一、本地构建与打包
+
+在项目根目录（rag/）执行：
+
+```bash
+npm run build          # 已配置 output: "standalone"
+npm run pack:standalone # 生成 dist-standalone/ 并打 tar 包
+```
+
+生成物：
+
+- **dist-standalone/**：可直接在 Linux 上运行的目录
+- **rag-standalone.tar.gz**：压缩包，便于上传服务器
+
+## 二、上传到 Linux 服务器
+
+```bash
+scp rag-standalone.tar.gz user@your-server:/opt/
+# 或使用 rsync 上传 dist-standalone 目录
+```
+
+在服务器上解压：
+
+```bash
+cd /opt && tar -xzf rag-standalone.tar.gz && cd dist-standalone
+```
+
+## 三、在 Linux 上运行
+
+**环境要求**：Node.js 18+（建议 20 LTS）
+
+**启动命令**：产物的 `package.json` 已包含 `scripts.start`，在解压后的目录内执行：
+
+```bash
+cd /opt/dist-standalone   # 或你解压后的目录
+npm start
+```
+
+等价于 `node server.js`，且 cwd 自动为当前目录，不会报「没有在项目目录中找到 package.json」。
+
+也可用自带脚本（同上效果）：
+
+```bash
+cd /opt/dist-standalone
+./start.sh
+```
+
+默认监听 **3000** 端口。指定端口：
+
+```bash
+PORT=4000 npm start
+# 或
+PORT=4000 ./start.sh
+```
+
+## 四、生产环境建议
+
+1. **进程守护**：用 systemd 或 pm2 管理 `node server.js`
+2. **反向代理**：用 Nginx 做反向代理，配置 HTTPS
+3. **环境变量**：在服务器上配置 `.env` 或 `export`（如向量库、API Key 等），不要提交到仓库
+4. **数据目录**：如需 Chroma/Milvus 等，在服务器上单独建目录并挂载或配置路径
+
+### systemd 示例
+
+`/etc/systemd/system/rag.service`：
+
+```ini
+[Unit]
+Description=RAG Next.js App
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/dist-standalone
+Environment=PORT=4000
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+然后：
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable rag
+sudo systemctl start rag
+```
+
+## 五、目录结构（dist-standalone）
+
+```
+dist-standalone/
+├── package.json       # 含 scripts.start = "node server.js"，用 npm start 启动
+├── server.js          # 入口
+├── start.sh           # 可选：./start.sh 等价 npm start
+├── .next/
+│   └── static/        # 静态资源
+├── public/            # 静态文件
+├── node_modules/      # standalone 依赖（已精简）
+├── demo-data/         # 示例数据（按需保留或删除）
+├── models/            # 嵌入模型等（按需保留）
+```

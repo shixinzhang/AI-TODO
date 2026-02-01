@@ -34,3 +34,7 @@ yarn-error.log*
 # milvus_data/
 milvus_data/logs/
 # models/
+
+# Standalone 部署产物
+dist-standalone/
+rag-standalone.tar.gz

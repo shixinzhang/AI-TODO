@@ -16,6 +16,9 @@ node_modules/
 **/*.tsbuildinfo
 **/.DS_Store
 
+# RAG 本地数据与日志（避免大文件入库）
+rag/milvus_data/logs/
+
 docs
 
 # Testing

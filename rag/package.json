@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "pack:standalone": "node scripts/pack-standalone.mjs",
     "lint": "eslint",
     "db:up": "./.venv/bin/milvus-server --data ./milvus_data",
     "db:down": "pkill -f milvus-server"
