@@ -64,10 +64,12 @@ function copyRecursive(src, dest) {
 console.log("复制 standalone 产物...");
 copyRecursive(innerDir, deployDir);
 
-// 从源目录读取 package.json，写入 start 脚本后写到产物目录（保证产物必有 package.json）
+// 从 standalone 目录读取 package.json，强制 start 为 node server.js（避免服务器上误用 next start 导致找不到 app 目录）
 const srcPkgPath = path.join(innerDir, "package.json");
 const dstPkgPath = path.join(deployDir, "package.json");
-const pkg = JSON.parse(fs.readFileSync(srcPkgPath, "utf8"));
+const pkg = fs.existsSync(srcPkgPath)
+  ? JSON.parse(fs.readFileSync(srcPkgPath, "utf8"))
+  : { name: "rag-standalone", version: "0.1.0" };
 pkg.scripts = pkg.scripts || {};
 pkg.scripts.start = "node server.js";
 fs.writeFileSync(dstPkgPath, JSON.stringify(pkg, null, 2), "utf8");
@@ -81,13 +83,28 @@ if (fs.existsSync(publicDir)) {
   copyRecursive(publicDir, path.join(deployDir, "public"));
 }
 
-// 写入 start.sh：先 cd 到本目录再启动，避免「没有在项目目录中找到 package.json」
+// 写入 start.sh：先 cd 到本目录再启动，默认端口 4000
 const startSh = `#!/bin/bash
 cd "$(dirname "$0")"
+export PORT=\${PORT:-4000}
 exec node server.js "$@"
 `;
 fs.writeFileSync(path.join(deployDir, "start.sh"), startSh, "utf8");
 fs.chmodSync(path.join(deployDir, "start.sh"), 0o755);
+
+// 写入简短说明：解压后无需 npm install
+const readme = `# RAG Standalone 部署包
+
+本目录为自包含包，已包含运行所需依赖与 package.json，服务器上解压后无需执行 npm install。
+
+启动方式（任选其一）：
+  npm start
+  ./start.sh
+  node server.js
+
+默认端口 4000，可通过环境变量覆盖：PORT=8080 ./start.sh
+`;
+fs.writeFileSync(path.join(deployDir, "README.deploy.txt"), readme, "utf8");
 
 const tarName = path.join(root, "rag-standalone.tar.gz");
 if (fs.existsSync(tarName)) fs.unlinkSync(tarName);
@@ -96,6 +113,6 @@ execSync(`tar -czf "${tarName}" -C "${root}" dist-standalone`, {
   stdio: "inherit",
 });
 
-console.log("完成:");
+console.log("完成（自包含包，含依赖 + package.json，解压后无需 npm install）:");
 console.log("  目录: dist-standalone/");
 console.log("  压缩包: rag-standalone.tar.gz");

@@ -31,7 +31,9 @@ cd /opt && tar -xzf rag-standalone.tar.gz && cd dist-standalone
 
 **环境要求**：Node.js 18+（建议 20 LTS）
 
-**启动命令**：产物的 `package.json` 已包含 `scripts.start`，在解压后的目录内执行：
+**重要**：必须用 **`node server.js`** 启动（即 `npm start` 或 `./start.sh`），**不要**在部署目录里执行 `next start`，否则会报 "Couldn't find any pages or app directory"。
+
+**启动命令**：产物的 `package.json` 已包含 `scripts.start = "node server.js"`，在解压后的目录内执行：
 
 ```bash
 cd /opt/dist-standalone   # 或你解压后的目录
@@ -47,7 +49,7 @@ cd /opt/dist-standalone
 ./start.sh
 ```
 
-默认监听 **3000** 端口。指定端口：
+默认监听 **4000** 端口（与本地开发一致）。指定其他端口：
 
 ```bash
 PORT=4000 npm start
@@ -91,7 +93,34 @@ sudo systemctl enable rag
 sudo systemctl start rag
 ```
 
-## 五、目录结构（dist-standalone）
+## 五、常见错误
+
+### "Couldn't find any `pages` or `app` directory"
+
+**原因**：在 **standalone 部署** 下执行了 `next start`，而 standalone 产物里没有源码的 `app`/`pages` 目录（已打进 `server.js`），所以会报错。
+
+**正确做法**：
+
+- 部署时使用 **打包好的 dist-standalone**（或解压后的目录），在**该目录内**执行：
+  ```bash
+  npm start
+  # 或
+  ./start.sh
+  ```
+  两者都会运行 `node server.js`，这是 standalone 唯一正确的启动方式。
+
+- **不要**在服务器上对源码执行 `npm run build` 后再 `npm start`（那样会跑 `next start`）。要么：
+  - 在本地/CI 执行 `npm run build` → `npm run pack:standalone`，把生成的 `dist-standalone` 或 `rag-standalone.tar.gz` 上传到服务器，在解压后的目录里执行 `npm start` 或 `./start.sh`；要么
+  - 在服务器上保留**完整源码**（含 `src/app`），再执行 `npm run build` 和 `npm start`（此时 `next start` 能正确找到 `src/app`）。
+
+- 若必须用端口 4000：
+  ```bash
+  PORT=4000 npm start
+  # 或
+  PORT=4000 ./start.sh
+  ```
+
+## 六、目录结构（dist-standalone）
 
 ```
 dist-standalone/
