@@ -31,20 +31,20 @@ interface DemoSection {
 
 const SECTIONS: DemoSection[] = [
   {
-    title: '1. 数据导入 (Data Loading)',
+    title: '1. 数据加载 (Data Loading)',
     actions: [
-      { label: 'TextLoader', action: 'load-text', description: '加载普通文本文件' },
+      { label: 'Policy Loader', action: 'load-text', description: '加载售后政策 (Markdown/Text)' },
+      { label: 'Product Loader', action: 'load-csv', description: '加载商品库存表 (CSV)' },
       { label: 'JSONLoader', action: 'load-json', description: '加载并解析 JSON 文件' },
-      { label: 'CSVLoader', action: 'load-csv', description: '加载 CSV 表格数据' },
       { label: 'WebLoader', action: 'load-web', description: '加载网页内容' },
-      { label: 'DirectoryLoader', action: 'load-directory', description: '批量加载目录 (txt, json, pdf)' },
+      { label: 'DirectoryLoader', action: 'load-directory', description: '批量加载目录' },
     ]
   },
   {
     title: '1.5 PDF 高级解析 (Advanced PDF)',
     actions: [
       { label: 'PDFLoader', action: 'load-pdf', description: '标准加载 (基于 pdf-parse)' },
-      { label: 'WebPDFLoader', action: 'load-pdf-web', description: '高级加载 (基于 pdfjs-dist，适合复杂布局)' },
+      { label: 'WebPDFLoader', action: 'load-pdf-web', description: '高级加载 (基于 pdfjs-dist)' },
     ]
   },
   {
@@ -68,7 +68,7 @@ const SECTIONS: DemoSection[] = [
       { label: 'Multi-Query', action: 'retrieval-multi-query', description: '多角度查询 (查询重写)' },
       { label: 'HyDE', action: 'retrieval-hyde', description: '假设文档嵌入 (Hypothetical Document Embedding)' },
       { label: 'Contextual Compression', action: 'retrieval-contextual-compression', description: '上下文压缩 (只保留相关内容)' },
-      { label: 'Re-ranking', action: 'retrieval-rerank', description: 'Cohere 重排 (需 COHERE_API_KEY)' },
+      { label: 'LLM Re-ranking', action: 'retrieval-rerank', description: 'LLM 重排 (自实现 Rerank)' },
       { label: 'Parent Document', action: 'retrieval-parent-document', description: '父文档检索 (切小块搜，回大块文)' },
     ]
   },
@@ -126,11 +126,11 @@ export default function RagDemoPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-8 font-sans text-gray-900">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2 text-blue-800">RAG 技术全解演示</h1>
+        <h1 className="text-3xl font-bold mb-2 text-blue-800">电商智能客服 RAG 实战演示</h1>
         <p className="mb-4 text-gray-600">
-          基于 Next.js 和 LangChain 的 RAG 流程分步演示。
+          基于 Next.js 和 LangChain 的 RAG 全流程分步演示：从商品数据加载到智能客服问答。
           <br />
-          <a href="https://xiaobot.net/p/ai_1024" target="_blank" className="text-sm text-blue-600 hover:text-blue-800">对应文档：https://xiaobot.net/p/ai_1024</a>
+          <a href="https://xiaobot.net/p/ai_1024" target="_blank" className="text-sm text-blue-600 hover:text-blue-800">对应教程：RAG 实战｜电商智能客服</a>
         </p>
         
         <div className="mb-8">

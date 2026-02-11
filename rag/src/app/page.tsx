@@ -23,6 +23,13 @@ export default function Home() {
   const [pageSize, setPageSize] = useState(50);
   const [totalDocs, setTotalDocs] = useState(0);
 
+  const SUGGESTIONS = [
+    "推荐一款降噪耳机",
+    "人体工学椅 V2 多少钱？",
+    "七天无理由退货的条件是什么？",
+    "数码产品保修期多久？"
+  ];
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.[0]) return;
 
@@ -64,11 +71,9 @@ export default function Home() {
     }
   };
 
-  const handleChat = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
+  const sendMessage = async (userMsg: string) => {
+    if (!userMsg.trim()) return;
 
-    const userMsg = input;
     setMessages((prev) => [...prev, { role: "user", content: userMsg }]);
     setInput("");
     setIsLoading(true);
@@ -89,6 +94,11 @@ export default function Home() {
     }
   };
 
+  const handleChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await sendMessage(input);
+  };
+
   const handleReset = async () => {
     if (!confirm("Are you sure you want to reset the knowledge base?")) return;
     try {
@@ -105,7 +115,7 @@ export default function Home() {
     <div className="flex min-h-screen flex-col bg-gray-50 text-gray-900">
       <header className="bg-white border-b px-6 py-4 flex items-center gap-2 sticky top-0 z-10">
         <Bot className="w-6 h-6 text-blue-600" />
-        <h1 className="text-xl font-bold">Teacher Profile RAG (Next.js)</h1>
+        <h1 className="text-xl font-bold">睿智商城智能客服</h1>
       </header>
 
       <main className="flex-1 flex flex-col md:flex-row max-w-6xl mx-auto w-full p-4 gap-6">
@@ -120,7 +130,7 @@ export default function Home() {
                 <span className="sr-only">Choose file</span>
                 <input
                   type="file"
-                  accept=".pdf,.txt"
+                  accept=".pdf,.txt,.csv,.md"
                   onChange={handleUpload}
                   className="block w-full text-sm text-gray-500
                     file:mr-4 file:py-2 file:px-4
@@ -166,7 +176,8 @@ export default function Home() {
             {messages.length === 0 && (
               <div className="h-full flex flex-col items-center justify-center text-gray-400 gap-2">
                 <FileText className="w-12 h-12 opacity-20" />
-                <p>Upload a profile and start asking questions.</p>
+                <p>👋 您好，我是睿智商城的智能客服。请问有什么可以帮您？</p>
+                <p className="text-xs">您可以问我：这款耳机有降噪吗？怎么退货？</p>
               </div>
             )}
             
@@ -185,6 +196,7 @@ export default function Home() {
                   {msg.role === "user" ? <User className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
                 </div>
                 <div
+                  data-testid={msg.role === "user" ? "user-message" : msg.role === "error" ? "error-message" : "assistant-message"}
                   className={`p-3 rounded-2xl text-sm leading-relaxed ${
                     msg.role === "user"
                       ? "bg-blue-600 text-white rounded-tr-none"
@@ -224,12 +236,25 @@ export default function Home() {
             )}
           </div>
 
+          <div className="px-4 pb-2 flex gap-2 overflow-x-auto no-scrollbar">
+            {SUGGESTIONS.map((text, i) => (
+              <button
+                key={i}
+                onClick={() => sendMessage(text)}
+                disabled={isLoading}
+                className="whitespace-nowrap text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full hover:bg-gray-200 hover:text-gray-900 transition-colors disabled:opacity-50 border border-gray-200"
+              >
+                {text}
+              </button>
+            ))}
+          </div>
+
           <form onSubmit={handleChat} className="p-4 border-t bg-gray-50 flex gap-2">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask a question about the teacher..."
+              placeholder="Ask a question about the AI Shop..."
               className="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               disabled={isLoading}
             />

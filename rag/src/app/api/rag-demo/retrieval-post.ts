@@ -69,13 +69,6 @@ export async function handleRetrievalPost(
   }
 
   if (action === "retrieval-rerank") {
-    const cohereKey = options.cohereApiKey;
-    if (!cohereKey) {
-      return {
-        error:
-          "Missing COHERE_API_KEY. Please provide it in header 'x-cohere-api-key' or env.",
-      };
-    }
     const loader = new TextLoader(path.join(dataDir, "sample.txt"));
     const docs = await loader.load();
     const splitter = new RecursiveCharacterTextSplitter({
@@ -88,32 +81,66 @@ export async function handleRetrievalPost(
       createEmbeddings(apiKey)
     );
     const baseRetriever = vectorStore.asRetriever(10);
-    const cohereRerank = new CohereRerank({
-      apiKey: cohereKey as string,
-      model: "rerank-english-v3.0",
-      topN: 3,
-    });
-    const retriever = new ContextualCompressionRetriever({
-      baseCompressor: cohereRerank,
-      baseRetriever: baseRetriever,
-      verbose: true,
-    });
+    
+    // Custom Rerank using LLM
+    const llm = createChatLLM(apiKey);
+    
     const query = "LangChain 的核心价值";
-    console.log(`--- Cohere Rerank: Invoking with query "${query}" ---`);
-    const results = await retriever.invoke(query);
-    console.log(`--- Cohere Rerank: Found ${results.length} results ---`);
-    results.forEach((doc, i) => {
+    console.log(`--- LLM Rerank: Invoking with query "${query}" ---`);
+    
+    // 1. First retrieval (Recall)
+    const initialDocs = await baseRetriever.invoke(query);
+    console.log(`--- LLM Rerank: Initial recall count: ${initialDocs.length} ---`);
+
+    // 2. Rerank Logic
+    const rerankedDocs = [];
+    for (const doc of initialDocs) {
+      const prompt = `
+      你是一个文档相关性评分专家。
+      请判断以下文档片段与用户问题的相关性，并给出 0-10 的评分。
+      
+      用户问题: ${query}
+      文档片段: ${doc.pageContent}
+      
+      请只输出一个数字（0-10），不要包含其他文字。
+      `;
+      
+      try {
+        const scoreStr = await llm.invoke(prompt);
+        // Extract number from response
+        const scoreMatch = typeof scoreStr === 'string' ? scoreStr.match(/\d+(\.\d+)?/) : String(scoreStr.content).match(/\d+(\.\d+)?/);
+        const score = scoreMatch ? parseFloat(scoreMatch[0]) : 0;
+        
+        console.log(`[Score: ${score}] ${doc.pageContent.slice(0, 50)}...`);
+        
+        if (score >= 6) { // Filter threshold
+          doc.metadata.relevanceScore = score;
+          rerankedDocs.push(doc);
+        }
+      } catch (e) {
+        console.error("Rerank error for doc:", e);
+      }
+    }
+
+    // Sort by score desc
+    rerankedDocs.sort((a, b) => b.metadata.relevanceScore - a.metadata.relevanceScore);
+    const topDocs = rerankedDocs.slice(0, 3); // Top 3
+
+    console.log(`--- LLM Rerank: Final count after rerank: ${topDocs.length} ---`);
+    topDocs.forEach((doc, i) => {
       console.log(
         `[Result ${i + 1}] (Score: ${doc.metadata.relevanceScore}) ${doc.pageContent.slice(0, 100)}...`
       );
     });
+
     return {
-      type: "Cohere Re-ranking",
-      query: "LangChain 的核心价值",
-      matchCount: results.length,
-      matches: results.map((d) => ({
+      type: "LLM Re-ranking (Custom)",
+      query: query,
+      initialCount: initialDocs.length,
+      finalCount: topDocs.length,
+      matches: topDocs.map((d) => ({
         content: d.pageContent,
-        metadata: d.metadata,
+        score: d.metadata.relevanceScore,
       })),
     };
   }

@@ -16,7 +16,7 @@
 
 # Related configuration of etcd, used to store Milvus metadata & service discovery.
 etcd:
-  endpoints: localhost:2381
+  endpoints: localhost:2379
   rootPath: by-dev # The root path where data is stored in etcd
   metaSubPath: meta # metaRootPath = rootPath + '/' + metaSubPath
   kvSubPath: kv # kvRootPath = rootPath + '/' + kvSubPath
@@ -28,7 +28,7 @@ etcd:
     #  - "stdout" as os.Stdout,
     #  - file path to append server logs to.
     # please adjust in embedded Milvus: /tmp/milvus/logs/etcd.log
-    path: /Users/zhangshixin/xmly/code/ai/test/rag-in-action/12-teacher-profile-rag-nextjs/milvus_data/logs/etcd.log
+    path: /Users/zhangshixin/xmly/code/ai/test/to-do-list/rag/milvus_data/logs/etcd.log
   ssl:
     enabled: false # Whether to support ETCD secure connection mode
     tlsCert: /path/to/etcd-client.pem # path to your cert file
@@ -41,7 +41,7 @@ etcd:
   use:
     embed: true # Whether to enable embedded Etcd (an in-process EtcdServer).
   data:
-    dir: /Users/zhangshixin/xmly/code/ai/test/rag-in-action/12-teacher-profile-rag-nextjs/milvus_data/data/etcd.data
+    dir: /Users/zhangshixin/xmly/code/ai/test/to-do-list/rag/milvus_data/data/etcd.data
 
 metastore:
   # Default value: etcd
@@ -59,7 +59,7 @@ tikv:
   kvSubPath: kv # kvRootPath = rootPath + '/' + kvSubPath
 
 localStorage:
-  path: /Users/zhangshixin/xmly/code/ai/test/rag-in-action/12-teacher-profile-rag-nextjs/milvus_data/data # please adjust in embedded Milvus: /tmp/milvus/data/
+  path: /Users/zhangshixin/xmly/code/ai/test/to-do-list/rag/milvus_data/data # please adjust in embedded Milvus: /tmp/milvus/data/
 
 # Related configuration of MinIO/S3/GCS or any other service supports S3 API, which is responsible for data persistence for Milvus.
 # We refer to the storage service as MinIO/S3 in the following description for simplicity.
@@ -130,7 +130,7 @@ pulsar:
 rocksmq:
   # The path where the message is stored in rocksmq
   # please adjust in embedded Milvus: /tmp/milvus/rdb_data
-  path: /Users/zhangshixin/xmly/code/ai/test/rag-in-action/12-teacher-profile-rag-nextjs/milvus_data/data/rocksmq
+  path: /Users/zhangshixin/xmly/code/ai/test/to-do-list/rag/milvus_data/data/rocksmq
   lrucacheratio: 0.06 # rocksdb cache memory ratio
   rocksmqPageSize: 67108864 # 64 MB, 64 * 1024 * 1024 bytes, The size of each page of messages in rocksmq
   retentionTimeInMinutes: 4320 # 3 days, 3 * 24 * 60 minutes, The retention time of the message in rocksmq.
@@ -174,7 +174,7 @@ rootCoord:
   # can specify ip for example
   # ip: 127.0.0.1
   ip: # if not specify address, will use the first unicastable address as local ip
-  port: 53101
+  port: 53100
   grpc:
     serverMaxSendSize: 536870912
     serverMaxRecvSize: 268435456
@@ -234,8 +234,8 @@ proxy:
   # can specify ip for example
   # ip: 127.0.0.1
   ip: # if not specify address, will use the first unicastable address as local ip
-  port: 19532
-  internalPort: 19533
+  port: 19530
+  internalPort: 19529
   grpc:
     serverMaxSendSize: 268435456
     serverMaxRecvSize: 67108864
@@ -264,7 +264,7 @@ queryCoord:
   # can specify ip for example
   # ip: 127.0.0.1
   ip: # if not specify address, will use the first unicastable address as local ip
-  port: 19534
+  port: 19531
   grpc:
     serverMaxSendSize: 536870912
     serverMaxRecvSize: 268435456
@@ -346,7 +346,7 @@ queryNode:
   # can specify ip for example
   # ip: 127.0.0.1
   ip: # if not specify address, will use the first unicastable address as local ip
-  port: 21125
+  port: 21123
   grpc:
     serverMaxSendSize: 536870912
     serverMaxRecvSize: 268435456
@@ -370,7 +370,7 @@ indexNode:
   # can specify ip for example
   # ip: 127.0.0.1
   ip: # if not specify address, will use the first unicastable address as local ip
-  port: 21122
+  port: 21121
   grpc:
     serverMaxSendSize: 536870912
     serverMaxRecvSize: 268435456
@@ -425,7 +425,7 @@ dataCoord:
   # can specify ip for example
   # ip: 127.0.0.1
   ip: # if not specify address, will use the first unicastable address as local ip
-  port: 13334
+  port: 13333
   grpc:
     serverMaxSendSize: 536870912
     serverMaxRecvSize: 268435456
@@ -451,7 +451,7 @@ dataNode:
   # can specify ip for example
   # ip: 127.0.0.1
   ip: # if not specify address, will use the first unicastable address as local ip
-  port: 21126
+  port: 21124
   grpc:
     serverMaxSendSize: 536870912
     serverMaxRecvSize: 268435456
@@ -478,7 +478,7 @@ dataNode:
 log:
   level: info # Only supports debug, info, warn, error, panic, or fatal. Default 'info'.
   file:
-    rootPath: /Users/zhangshixin/xmly/code/ai/test/rag-in-action/12-teacher-profile-rag-nextjs/milvus_data/logs # root dir path to put logs, default "" means no log file will print. please adjust in embedded Milvus: /tmp/milvus/logs
+    rootPath: /Users/zhangshixin/xmly/code/ai/test/to-do-list/rag/milvus_data/logs # root dir path to put logs, default "" means no log file will print. please adjust in embedded Milvus: /tmp/milvus/logs
     maxSize: 300 # MB
     maxAge: 10 # Maximum time for log retention in day.
     maxBackups: 20

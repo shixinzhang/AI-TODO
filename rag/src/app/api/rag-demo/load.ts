@@ -24,7 +24,7 @@ export async function handleLoad(
 ): Promise<Record<string, unknown>> {
   switch (action) {
     case "load-text": {
-      const textLoader = new TextLoader(path.join(dataDir, "sample.txt"));
+      const textLoader = new TextLoader(path.join(dataDir, "refund_policy.md"));
       const textDocs = await textLoader.load();
       return {
         type: "TextLoader",
@@ -47,7 +47,7 @@ export async function handleLoad(
     }
 
     case "load-csv": {
-      const csvLoader = new CSVLoader(path.join(dataDir, "sample.csv"));
+      const csvLoader = new CSVLoader(path.join(dataDir, "products.csv"));
       const csvDocs = await csvLoader.load();
       return {
         type: "CSVLoader",

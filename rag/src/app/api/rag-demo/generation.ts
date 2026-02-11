@@ -27,11 +27,11 @@ export async function handleGeneration(
     });
     const chain = prompt.pipe(llm).pipe(parser);
     const jsonResult = await chain.invoke({
-      query: "生成一个虚构的用户画像，包含 name, age, interests",
+      query: "生成一个虚构的电商用户画像，包含 name, age, recent_purchases, preference",
     });
     return {
       type: "Generation (JSON)",
-      query: "生成一个虚构的用户画像...",
+      query: "生成一个虚构的电商用户画像...",
       output: jsonResult,
     };
   }
@@ -39,19 +39,19 @@ export async function handleGeneration(
   if (action === "generation") {
     const llm = createChatLLM(apiKey);
     const prompt = PromptTemplate.fromTemplate(
-      "Answer the question based on the context.\nContext: {context}\nQuestion: {question}"
+      "你是一名专业的电商智能客服。请基于以下上下文（商品信息或政策）回答用户问题。\n如果不知道，请礼貌地引导用户转人工。\n上下文：{context}\n用户问题：{question}"
     );
     const chain = prompt
       .pipe(llm)
       .pipe(new StringOutputParser());
     const answer = await chain.invoke({
-      context: "RAG stands for Retrieval-Augmented Generation.",
-      question: "What does RAG stand for?",
+      context: "商品名称: 极客降噪耳机 Pro\n价格: 1299\n核心卖点: 40dB主动降噪，30小时续航",
+      question: "这款耳机续航多久？",
     });
     return {
       type: "Generation",
-      question: "What does RAG stand for?",
-      context: "RAG stands for Retrieval-Augmented Generation.",
+      question: "这款耳机续航多久？",
+      context: "商品名称: 极客降噪耳机 Pro...",
       answer: answer,
     };
   }

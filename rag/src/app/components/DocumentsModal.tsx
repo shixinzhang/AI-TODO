@@ -128,9 +128,18 @@ export default function DocumentsModal({
                                 : "N/A"}
                             </div>
                           )}
-                          {doc.score && (
-                            <div className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-100 font-medium">
-                              Score: {doc.score.toFixed(4)}
+                          {(doc.relevanceScore !== undefined || doc.score !== undefined) && (
+                            <div className="flex flex-col gap-1 mt-1">
+                              {doc.relevanceScore !== undefined && (
+                                <div className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded border border-purple-100 font-bold">
+                                  Rerank: {doc.relevanceScore}
+                                </div>
+                              )}
+                              {doc.score !== undefined && (
+                                <div className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-100 font-medium">
+                                  Vector: {typeof doc.score === 'number' ? doc.score.toFixed(4) : doc.score}
+                                </div>
+                              )}
                             </div>
                           )}
                         </td>
