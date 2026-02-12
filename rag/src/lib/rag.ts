@@ -241,22 +241,28 @@ export class RAGEngine {
         // 确保 metadata 存在
         doc.metadata = doc.metadata || {};
         
-        // 关键修复：Milvus 强制要求 metadata 中的所有值必须是标量（string/number/boolean）
-        // 某些 Loader (如 PDFLoader) 可能会生成嵌套对象或 undefined/null 字段，这会导致 Milvus 报错
-        // 错误示例：Error: The field "blobType" is not provided in documents[0].metadata.
-        
-        // 1. 扁平化处理：将所有元数据值转换为 JSON 字符串
+        console.log(`[Add Document] Cleaning metadata for chunk ${index}:`, JSON.stringify(doc.metadata));
+
+        // 1. 移除已知可能导致问题的字段
+        if ('blobType' in doc.metadata) {
+            delete doc.metadata.blobType;
+        }
+
+        // 2. 扁平化处理：将所有元数据值转换为 JSON 字符串
         for (const key in doc.metadata) {
+            // 确保没有 undefined/null 值
+            if (doc.metadata[key] === undefined || doc.metadata[key] === null) {
+                 delete doc.metadata[key];
+                 continue;
+            }
+
             const value = doc.metadata[key];
             if (typeof value === 'object' && value !== null) {
                 doc.metadata[key] = JSON.stringify(value);
             }
         }
-
-        // 2. 补充 Milvus 可能需要的特定字段（虽然通常不需要手动加，但为了保险）
-        // 这里主要解决 "The field 'xxx' is not provided" 这类 schema 校验错误
-        // 如果你的 Milvus Collection Schema 定义了特定字段，必须在这里补全
-        // 目前我们的 Schema 是由 LangChain 自动管理的（auto_id），理论上只需保证 dynamic fields 都是标量即可
+        
+        console.log(`[Add Document] Cleaned metadata for chunk ${index}:`, JSON.stringify(doc.metadata));
     });
 
     // 4. 向量化并存储 (Embed & Store)
@@ -304,6 +310,7 @@ export class RAGEngine {
   async addToVectorStore(splitDocs: Document[]) {
         console.log("[Add Document] 向现有向量库添加文档...");
         try {
+            // @ts-ignore
             await this.vectorStore!.addDocuments(splitDocs);
         } catch (e) {
             console.error("[Add Document] 向 Milvus 添加文档失败:", e);
