@@ -1,5 +1,5 @@
 
-本仓库为[《转型 AI 工程师》](https://xiaobot.net/p/ai_1024) 专栏的配套实战项目代码。
+本仓库为[《转型 AI 工程师》](https://xiaobot.net/p/earnByYourself) 专栏的配套实战项目代码。
 
 包含：
 - 待办 AI 拆解
