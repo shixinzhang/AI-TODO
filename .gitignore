@@ -24,6 +24,8 @@ docs
 langchain-guide
 LangChain
 
+rag/milvus_data/data
+
 # Testing
 /coverage
 
