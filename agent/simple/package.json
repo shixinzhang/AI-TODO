@@ -1,0 +1,11 @@
+{
+  "name": "column-code-snippets",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "agent": "node --env-file=.env simple-agent.js"
+  },
+  "dependencies": {
+    "openai": "^4.73.0"
+  }
+}
