@@ -44,7 +44,8 @@ CREATE POLICY "Allow all operations" ON tasks
 
 -- ============================================================
 -- 用户画像表 (User Profiles) - 用于长期记忆与画像提取
--- ============================================================CREATE TABLE IF NOT EXISTS user_profiles (
+-- ============================================================
+CREATE TABLE IF NOT EXISTS user_profiles (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id TEXT NOT NULL UNIQUE,  -- 用户唯一标识
   profile JSONB DEFAULT '{}'::jsonb NOT NULL,  -- 用户画像数据（JSON 格式）
