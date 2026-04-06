@@ -2,7 +2,7 @@
 
 一个基于 LangGraph.js + Ink 的命令行“代码助手”Demo：在终端里输入需求，Agent 会流式思考并调用工具（写文件 / 执行命令 / 打开浏览器）来完成简单的前端任务。
 
-**详细实现讲解文章 [第 20 讲｜用 LangChain 造一个精简版 Claude Code](https://xiaobot.net/post/b8fb773d-e0fb-4d14-af28-50fef3291dd2)**
+**详细实现讲解文章** **[第 20 讲｜用 LangChain 造一个精简版 Claude Code](https://xiaobot.net/post/b8fb773d-e0fb-4d14-af28-50fef3291dd2)**
 
 ## 依赖
 
@@ -58,6 +58,5 @@ Agent 生成的前端文件不会直接写到 `output/` 根目录，而是每次
 2. 直接运行 `node model.js` 做连通性自测（会发起一次简单请求）
 3. 如果出现 `502 Service temporarily unavailable`，说明上游网关/服务端暂时不可用或不支持当前模型
 
-## 相关文档
+##
 
-- checkpoint 原理与本项目报错说明：`checkpoint-原理与报错.md`
