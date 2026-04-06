@@ -4,6 +4,8 @@ node_modules/
 /.pnp
 .pnp.js
 
+**/output/
+
 # Subprojects (rag/, todo-and-chat/, etc.) - 子项目共用规则
 # 子项目下如有 .gitignore，会与根规则叠加生效
 **/.next/
