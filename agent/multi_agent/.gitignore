@@ -1,0 +1,17 @@
+.DS_Store
+.env
+.env.*
+!.env.sample
+
+node_modules/
+
+doc/
+
+.local/
+article-output/
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+

@@ -1,0 +1,24 @@
+{
+  "name": "multi-agent-writing",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node main.js",
+    "dev": "npx tsx main.js"
+  },
+  "dependencies": {
+    "@langchain/core": "^1.1.39",
+    "@langchain/deepseek": "^1.0.22",
+    "@langchain/langgraph": "^1.2.7",
+    "@langchain/langgraph-checkpoint": "^1.0.1",
+    "@langchain/langgraph-checkpoint-sqlite": "^1.0.1",
+    "@langchain/openai": "^1.4.2",
+    "dotenv": "^16.4.0",
+    "langchain": "^1.3.0",
+    "openai": "^4.97.0",
+    "zod": "^3.25.32"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}
