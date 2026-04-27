@@ -92,7 +92,14 @@ export async function illustratorGenerateAgent(state) {
   const prompt = plan.prompt;
 
   console.log(`  生成：${filename}...`);
-  const savedPath = await generateWithRepair({ prompt, filename, outputDir });
+  let savedPath;
+  try {
+    savedPath = await generateWithRepair({ prompt, filename, outputDir });
+  } catch (err) {
+    const message = err?.message || String(err);
+    console.log(`  ✗ ${filename} 最终生成失败，已跳过（${message}）`);
+    return {};
+  }
   console.log(`  ✓ 已保存到 ${savedPath}`);
 
   return {
